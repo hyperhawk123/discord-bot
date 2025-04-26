@@ -1,10 +1,10 @@
 const express = require('express');
-const cors = require('cors'); // Added CORS
+const cors = require('cors');
 require('dotenv').config();
 const { Client, Intents, WebhookClient } = require('discord.js');
 
 const app = express();
-app.use(cors()); // Enable CORS
+app.use(cors());
 app.get('/', (req, res) => {
   res.send('Bot is running!');
 });
@@ -12,6 +12,8 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Web server running on port ${PORT}`);
 });
+
+// Important: Railway sometimes needs you to "keep alive" by having a web server running (you already have it — GOOD ✅)
 
 const client = new Client({
   intents: [
@@ -21,6 +23,7 @@ const client = new Client({
   ],
 });
 
+// Webhook setup
 const webhook = new WebhookClient({ url: process.env.WEBHOOK_URL });
 let lastMessageId = null;
 let updateInterval;
@@ -86,16 +89,25 @@ async function updateStats() {
   }
 }
 
-client.on('ready', () => {
+client.once('ready', () => {
   console.log(`✅ Bot online as ${client.user.tag}`);
   updateStats();
   client.on('presenceUpdate', updateStats);
   updateInterval = setInterval(updateStats, 180000); // every 3 minutes
 });
 
-process.on('SIGINT', () => {
+// Graceful shutdown
+process.on('SIGINT', async () => {
   clearInterval(updateInterval);
-  process.exit();
+  await client.destroy();
+  process.exit(0);
 });
 
+process.on('SIGTERM', async () => {
+  clearInterval(updateInterval);
+  await client.destroy();
+  process.exit(0);
+});
+
+// Bot login
 client.login(process.env.BOT_TOKEN);
