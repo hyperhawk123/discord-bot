@@ -1,11 +1,23 @@
-require("dotenv").config();
-const { Client, GatewayIntentBits, WebhookClient } = require("discord.js");
+const express = require('express');
+const cors = require('cors'); // Added CORS
+require('dotenv').config();
+const { Client, Intents, WebhookClient } = require('discord.js');
+
+const app = express();
+app.use(cors()); // Enable CORS
+app.get('/', (req, res) => {
+  res.send('Bot is running!');
+});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Web server running on port ${PORT}`);
+});
 
 const client = new Client({
   intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildPresences,
+    Intents.FLAGS.GUILDS,
+    Intents.FLAGS.GUILD_MEMBERS,
+    Intents.FLAGS.GUILD_PRESENCES,
   ],
 });
 
@@ -21,49 +33,43 @@ async function updateStats() {
     const online = guild.members.cache.filter(
       (m) =>
         m.presence?.status &&
-        ["online", "idle", "dnd"].includes(m.presence.status),
+        ['online', 'idle', 'dnd'].includes(m.presence.status)
     ).size;
 
-    const currentTime = new Date();
-    // Format time and date in your desired timezone (Asia/Kolkata here)
-    const formattedTime = currentTime.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZone: "Asia/Kolkata", // Change this to your preferred timezone
-    });
-    const formattedDate = currentTime.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "short",
-      day: "numeric",
-      timeZone: "Asia/Kolkata", // Ensure this matches your desired timezone
+    const now = new Date();
+    const formattedTime = now.toLocaleTimeString('en-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'Asia/Kolkata',
     });
 
     const embed = {
       embeds: [
         {
-          title: "**SERVER STATUS**",
-          color: 0xff0000, // Red
+          title: '**SERVER STATUS**',
+          color: 0xff0000,
           fields: [
             {
-              name: "**> STATUS**",
-              value: "```🟢 Online\n```",
+              name: '**> STATUS**',
+              value: '```🟢 Online\n```',
               inline: true,
             },
             {
-              name: "**> PLAYERS**",
+              name: '**> PLAYERS**',
               value: `\`\`\`👥 ${online}/${guild.memberCount}\`\`\``,
               inline: true,
             },
             {
-              name: "**> INVITE**",
-              value: "```  https://discord.gg/22mGfCGAqw\n```",
+              name: '**> INVITE**',
+              value: '```https://discord.gg/22mGfCGAqw\n```',
             },
           ],
           footer: {
             text: `Updated every 3 minutes • Today at ${formattedTime}`,
           },
           image: {
-            url: "https://i.imgur.com/yxtM4Aw.jpeg",
+            url: 'https://i.imgur.com/yxtM4Aw.jpeg',
           },
         },
       ],
@@ -76,18 +82,18 @@ async function updateStats() {
       await webhook.editMessage(lastMessageId, embed);
     }
   } catch (error) {
-    console.error("Update failed:", error);
+    console.error('Update failed:', error);
   }
 }
 
-client.on("ready", () => {
+client.on('ready', () => {
   console.log(`✅ Bot online as ${client.user.tag}`);
   updateStats();
-  client.on("presenceUpdate", updateStats);
+  client.on('presenceUpdate', updateStats);
   updateInterval = setInterval(updateStats, 180000); // every 3 minutes
 });
 
-process.on("SIGINT", () => {
+process.on('SIGINT', () => {
   clearInterval(updateInterval);
   process.exit();
 });
